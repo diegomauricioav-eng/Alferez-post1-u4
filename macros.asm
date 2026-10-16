@@ -88,3 +88,20 @@
     int 21h
     pop ax                  ; restaura AX
 %endmacro
+
+; ---------------------------------------------------------------
+; Macro bloque_decorativo: imprime el separador corto N veces,
+; desenrollado en tiempo de ensamblado con %rep.
+; Parametro %1: numero de copias (constante conocida al ensamblar,
+; no un valor leido en tiempo de ejecucion).
+; %rep duplica el codigo encerrado antes de ensamblar, por lo que
+; el codigo expandido no contiene CX ni LOOP. La macro no necesita
+; etiquetas locales porque su cuerpo no contiene ningun salto.
+; La cadena separador_corto debe existir en la seccion .data del
+; programa que invoca la macro.
+; ---------------------------------------------------------------
+%macro bloque_decorativo 1
+%rep %1
+    print_str separador_corto   ; cada copia es codigo independiente
+%endrep
+%endmacro

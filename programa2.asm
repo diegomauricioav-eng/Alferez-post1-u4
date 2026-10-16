@@ -1,5 +1,6 @@
 ; programa2.asm - Laboratorio Post1 Unidad 4, Parte 2
-; Integra macros, un bucle acumulador con LOOP y condicionales CMP/Jcc.
+; Integra macros, un bucle acumulador con LOOP, condicionales CMP/Jcc,
+; una macro con %rep y una segunda procedura de comparacion con JLE.
 
 %include "macros.asm"       ; incluye la biblioteca de macros textualmente
 
@@ -8,13 +9,16 @@
 ; el terminador que exige la funcion 09h de INT 21h.
 ; ---------------------------------------------------------------
 section .data
-titulo      db "= Macros y Control de Flujo =", 0Dh, 0Ah, 24h
-linea_a     db "[Linea A] Primera impresion", 0Dh, 0Ah, 24h
-linea_b     db "[Linea B] Segunda impresion", 0Dh, 0Ah, 24h
-msg_suma    db "La suma de 1 a 3 es: ", 24h
-msg_mayor   db "El valor mayor es: ", 24h
-msg_iguales db "Los valores son iguales.", 0Dh, 0Ah, 24h
-msg_fin     db "Fin del programa.", 0Dh, 0Ah, 24h
+titulo          db "= Macros y Control de Flujo =", 0Dh, 0Ah, 24h
+linea_a         db "[Linea A] Primera impresion", 0Dh, 0Ah, 24h
+linea_b         db "[Linea B] Segunda impresion", 0Dh, 0Ah, 24h
+msg_suma        db "La suma de 1 a 3 es: ", 24h
+msg_mayor       db "El valor mayor es: ", 24h
+msg_iguales     db "Los valores son iguales.", 0Dh, 0Ah, 24h
+msg_fin         db "Fin del programa.", 0Dh, 0Ah, 24h
+separador_corto db "---", 0Dh, 0Ah, 24h        ; usado por bloque_decorativo (%rep)
+msg_menor_igual db "AX es menor o igual: ", 24h ; usado por comparar_menor_o_igual
+msg_mayor2      db "AX es mayor: ", 24h         ; usado por comparar_menor_o_igual
 
 ; ---------------------------------------------------------------
 ; Datos no inicializados: un word reservado para cada valor.
@@ -51,7 +55,13 @@ main:
     mov bx, 5
     call comparar_e_imprimir ; los valores son iguales
 
-    print_str msg_fin       ; 6. mensaje final
+    bloque_decorativo 3     ; 7. tres copias de "---" desenrolladas con %rep
+
+    mov ax, 3               ; 8. compara 3 contra 8 con la condicion JLE
+    mov bx, 8
+    call comparar_menor_o_igual ; imprime "AX es menor o igual: 3"
+
+    print_str msg_fin       ; 9. mensaje final
     fin_dos                 ; termina el programa con la macro fin_dos
 
 ; ---------------------------------------------------------------
@@ -98,6 +108,38 @@ comparar_e_imprimir:
     print_str msg_iguales
 
 .fin_comp:
+    pop bx                  ; restaura BX
+    pop ax                  ; restaura AX
+    ret
+
+; ---------------------------------------------------------------
+; Procedimiento comparar_menor_o_igual: compara AX y BX e indica si
+; AX es menor o igual que BX, o si AX es mayor. Imprime el valor de AX.
+; Reutiliza las macros print_str, print_digito y nueva_linea.
+; A diferencia de comparar_e_imprimir (que decide con JE y JG), aqui
+; la decision se toma con una sola instruccion: JLE, que salta si
+; ZF = 1 o SF != OF (AX <= BX con signo).
+; Preserva AX y BX con PUSH/POP.
+; Las etiquetas con punto pertenecen a este procedimiento (quedan
+; como comparar_menor_o_igual.menor_o_igual, etc.), por lo que no
+; colisionan con las de comparar_e_imprimir.
+; ---------------------------------------------------------------
+comparar_menor_o_igual:
+    push ax                 ; preserva AX
+    push bx                 ; preserva BX
+    cmp ax, bx              ; flags segun AX - BX, sin modificar operandos
+    jle .menor_o_igual      ; si AX <= BX con signo, salta
+
+    print_str msg_mayor2    ; caso AX mayor que BX
+    print_digito            ; imprime AX (AL se conserva tras print_str)
+    jmp .fin_cmp2
+
+.menor_o_igual:             ; caso AX menor o igual que BX
+    print_str msg_menor_igual
+    print_digito            ; imprime AX
+
+.fin_cmp2:
+    nueva_linea
     pop bx                  ; restaura BX
     pop ax                  ; restaura AX
     ret
